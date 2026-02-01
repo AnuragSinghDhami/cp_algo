@@ -1,0 +1,76 @@
+//trie implmentation vector based 
+
+#include <bits/stdc++.h>
+using namespace std;
+
+const int LETTERS = 26;
+
+struct Node {
+    vector<int> children;
+    int strings_ending_here;
+    int strings_going_below;
+
+    Node() {
+        children.assign(LETTERS, -1);
+        strings_ending_here = 0;
+        strings_going_below = 0;
+    }
+};
+
+struct Trie {
+    vector<Node> TrieTree;
+    int sizeOfTrie;
+
+    Trie() {
+        TrieTree.push_back(Node()); // root node at index 0
+        sizeOfTrie = 1;
+    }
+
+    // Insert word
+    void add(const string& word) {
+        int currNode = 0;
+        for (char ch : word) {
+            int index = ch - 'a';
+            if (TrieTree[currNode].children[index] == -1) {
+                TrieTree[currNode].children[index] = sizeOfTrie;
+                TrieTree.push_back(Node());
+                sizeOfTrie++;
+            }
+            currNode = TrieTree[currNode].children[index];
+            TrieTree[currNode].strings_going_below++;
+        }
+        TrieTree[currNode].strings_ending_here++;
+    }
+
+    // Search full word
+    bool search(const string& word) {
+        int currNode = 0;
+        for (char ch : word) {
+            int index = ch - 'a';
+            if (TrieTree[currNode].children[index] == -1)
+                return false;
+            currNode = TrieTree[currNode].children[index];
+        }
+        return TrieTree[currNode].strings_ending_here > 0;
+    }
+
+    // Delete word (safe soft delete + edge prune)
+    void remove(const string& word) {
+        if (!search(word)) return;
+
+        int currNode = 0;
+        for (char ch : word) {
+            int index = ch - 'a';
+            int child = TrieTree[currNode].children[index];
+
+            TrieTree[child].strings_going_below--;
+
+            if (TrieTree[child].strings_going_below == 0) {
+                TrieTree[currNode].children[index] = -1;
+            }
+
+            currNode = child;
+        }
+        TrieTree[currNode].strings_ending_here--;
+    }
+};
