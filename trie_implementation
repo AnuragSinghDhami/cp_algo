@@ -74,3 +74,98 @@ struct Trie {
         TrieTree[currNode].strings_ending_here--;
     }
 };
+
+
+//more opimtized with prefix search
+
+#include <vector>
+#include <string>
+#include <algorithm> // for std::fill
+#include <iostream>
+
+using namespace std;
+
+const int LETTERS = 26;
+
+struct Node {
+    // Optimization: Use raw array instead of vector for children
+    // This keeps the Node strictly contiguous in memory (POD-like)
+    int children[LETTERS]; 
+    int strings_ending_here;
+    int strings_going_below;
+
+    Node() {
+        fill(begin(children), end(children), -1);
+        strings_ending_here = 0;
+        strings_going_below = 0;
+    }
+};
+
+struct Trie {
+    vector<Node> TrieTree;
+
+    Trie() {
+        // Reserve space to avoid frequent reallocations if you know the size approx
+        // TrieTree.reserve(10000); 
+        TrieTree.emplace_back(); // Create root at index 0
+    }
+
+    void add(const string& word) {
+        int currNode = 0;
+        for (char ch : word) {
+            int index = ch - 'a';
+            if (TrieTree[currNode].children[index] == -1) {
+                TrieTree[currNode].children[index] = TrieTree.size();
+                TrieTree.emplace_back(); // Push new node
+            }
+            currNode = TrieTree[currNode].children[index];
+            TrieTree[currNode].strings_going_below++;
+        }
+        TrieTree[currNode].strings_ending_here++;
+    }
+
+    bool search(const string& word) {
+        int currNode = 0;
+        for (char ch : word) {
+            int index = ch - 'a';
+            if (TrieTree[currNode].children[index] == -1)
+                return false;
+            currNode = TrieTree[currNode].children[index];
+        }
+        return TrieTree[currNode].strings_ending_here > 0;
+    }
+
+    int countWordsStartingWith(const string& prefix) {
+        int currNode = 0;
+        for (char ch : prefix) {
+            int index = ch - 'a';
+            if (TrieTree[currNode].children[index] == -1)
+                return 0;
+            currNode = TrieTree[currNode].children[index];
+        }
+        return TrieTree[currNode].strings_going_below;
+    }
+
+    void remove(const string& word) {
+        if (!search(word)) return; // Word doesn't exist, do nothing
+
+        int currNode = 0;
+        for (char ch : word) {
+            int index = ch - 'a';
+            int childIndex = TrieTree[currNode].children[index];
+            
+            // Decrement the count for the child
+            TrieTree[childIndex].strings_going_below--;
+
+            // If the branch is now dead (no words go below), prune the link
+            if (TrieTree[childIndex].strings_going_below == 0) {
+                TrieTree[currNode].children[index] = -1;
+                // Note: We do not physically delete the node from the vector
+                // to maintain index integrity for other nodes.
+                return; // Optimization: We cut the branch, no need to go deeper
+            }
+            currNode = childIndex;
+        }
+        TrieTree[currNode].strings_ending_here--;
+    }
+};
